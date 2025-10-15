@@ -1,0 +1,119 @@
+# Azure DevOps Pipeline for Playwright Tests
+trigger:
+  branches:
+    include:
+      - main
+      - develop
+  paths:
+    exclude:
+      - README.md
+      - .gitignore
+
+pr:
+  branches:
+    include:
+      - main
+      - develop
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  NODE_VERSION: '18.x'
+  PLAYWRIGHT_BROWSERS_PATH: 0
+
+stages:
+- stage: Test
+  displayName: 'Run Playwright Tests'
+  jobs:
+  - job: PlaywrightTests
+    displayName: 'Playwright Test Execution'
+    steps:
+    
+    - task: NodeTool@0
+      displayName: 'Install Node.js'
+      inputs:
+        versionSpec: $(NODE_VERSION)
+    
+    - script: |
+        npm ci
+      displayName: 'Install Dependencies'
+    
+    - script: |
+        npx playwright install --with-deps
+      displayName: 'Install Playwright Browsers'
+    
+    - script: |
+        npm run type-check
+      displayName: 'TypeScript Type Check'
+    
+    - script: |
+        npm run lint
+      displayName: 'ESLint Check'
+      continueOnError: true
+    
+    - script: |
+        npm test
+      displayName: 'Run Playwright Tests'
+      env:
+        CI: true
+        HEADLESS: true
+        WORKERS: 1
+    
+    - task: PublishTestResults@2
+      displayName: 'Publish Test Results'
+      condition: always()
+      inputs:
+        testResultsFormat: 'JUnit'
+        testResultsFiles: 'test-results/junit.xml'
+        testRunTitle: 'Playwright Test Results'
+        mergeTestResults: true
+    
+    - task: PublishBuildArtifacts@1
+      displayName: 'Publish HTML Report'
+      condition: always()
+      inputs:
+        pathToPublish: 'playwright-report'
+        artifactName: 'playwright-report'
+    
+    - task: PublishBuildArtifacts@1
+      displayName: 'Publish Test Results'
+      condition: always()
+      inputs:
+        pathToPublish: 'test-results'
+        artifactName: 'test-results'
+
+  - job: SmokeTests
+    displayName: 'Smoke Tests Only'
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+    steps:
+    
+    - task: NodeTool@0
+      displayName: 'Install Node.js'
+      inputs:
+        versionSpec: $(NODE_VERSION)
+    
+    - script: |
+        npm ci
+      displayName: 'Install Dependencies'
+    
+    - script: |
+        npx playwright install --with-deps
+      displayName: 'Install Playwright Browsers'
+    
+    - script: |
+        npm run test:smoke
+      displayName: 'Run Smoke Tests'
+      env:
+        CI: true
+        HEADLESS: true
+        WORKERS: 1
+    
+    - task: PublishTestResults@2
+      displayName: 'Publish Smoke Test Results'
+      condition: always()
+      inputs:
+        testResultsFormat: 'JUnit'
+        testResultsFiles: 'test-results/junit.xml'
+        testRunTitle: 'Smoke Test Results'
+        mergeTestResults: true

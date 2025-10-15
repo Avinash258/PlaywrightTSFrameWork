@@ -1,0 +1,22 @@
+<testsuites id="" name="" tests="9" failures="0" skipped="0" errors="0" time="48.523526">
+<testsuite name="optimized-auth.spec.ts" timestamp="2025-10-15T14:07:11.574Z" hostname="chromium" tests="9" failures="0" skipped="0" time="29.766" errors="0">
+<testcase name="Authentication - Optimized › should login successfully with valid credentials @smoke" classname="optimized-auth.spec.ts" time="3.393">
+</testcase>
+<testcase name="Authentication - Optimized › should show error for locked user" classname="optimized-auth.spec.ts" time="2.601">
+</testcase>
+<testcase name="Authentication - Optimized › should show error for invalid credentials" classname="optimized-auth.spec.ts" time="2.744">
+</testcase>
+<testcase name="Authentication - Optimized › should clear fields when clicking login with empty fields" classname="optimized-auth.spec.ts" time="3.001">
+</testcase>
+<testcase name="Authentication - Optimized › should maintain login button state" classname="optimized-auth.spec.ts" time="2.319">
+</testcase>
+<testcase name="Authentication - Data Driven › login with standard_user should succeed" classname="optimized-auth.spec.ts" time="2.465">
+</testcase>
+<testcase name="Authentication - Data Driven › login with locked_out_user should fail" classname="optimized-auth.spec.ts" time="2.412">
+</testcase>
+<testcase name="Authentication - Data Driven › login with problem_user should succeed" classname="optimized-auth.spec.ts" time="2.744">
+</testcase>
+<testcase name="Authentication - Data Driven › login with performance_glitch_user should succeed" classname="optimized-auth.spec.ts" time="8.087">
+</testcase>
+</testsuite>
+</testsuites>

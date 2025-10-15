@@ -1,0 +1,40 @@
+{
+  "name": "playwright-saucedemo",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "HEADLESS=false playwright test",
+    "test:debug": "playwright test --debug",
+    "test:trace": "playwright test --trace on",
+    "test:ui": "playwright test --ui",
+    "test:chromium": "playwright test --project=chromium",
+    "test:firefox": "playwright test --project=firefox",
+    "test:webkit": "playwright test --project=webkit",
+    "test:mobile": "playwright test --project=mobile-chrome --project=mobile-safari",
+    "test:smoke": "playwright test --grep @smoke",
+    "test:regression": "playwright test --grep @regression",
+    "test:api": "playwright test tests/api/",
+    "test:report": "npx playwright show-report",
+    "test:azure": "CI=true HEADLESS=true WORKERS=1 playwright test",
+    "test:azure-smoke": "CI=true HEADLESS=true WORKERS=1 playwright test --grep @smoke",
+    "codegen": "playwright codegen https://www.saucedemo.com/",
+    "codegen:login": "playwright codegen https://www.saucedemo.com/",
+    "install:browsers": "playwright install",
+    "format": "prettier --write '**/*.{ts,js,json,md}'",
+    "lint": "eslint \"**/*.{ts,js}\"",
+    "lint:fix": "eslint \"**/*.{ts,js}\" --fix",
+    "type-check": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@faker-js/faker": "^8.4.1",
+    "@playwright/test": "^1.56.0",
+    "@types/node": "^24.7.2",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "eslint": "^8.50.0",
+    "prettier": "^2.8.0",
+    "typescript": "^5.3.0",
+    "xlsx": "^0.18.5"
+  }
+}

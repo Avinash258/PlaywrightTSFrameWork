@@ -1,0 +1,64 @@
+# Azure DevOps Pipeline for PR Validation
+trigger: none
+
+pr:
+  branches:
+    include:
+      - main
+      - develop
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  NODE_VERSION: '18.x'
+
+stages:
+- stage: Validate
+  displayName: 'PR Validation'
+  jobs:
+  - job: Validation
+    displayName: 'Code Quality & Tests'
+    steps:
+    
+    - task: NodeTool@0
+      displayName: 'Install Node.js'
+      inputs:
+        versionSpec: $(NODE_VERSION)
+    
+    - script: |
+        npm ci
+      displayName: 'Install Dependencies'
+    
+    - script: |
+        npm run type-check
+      displayName: 'TypeScript Type Check'
+    
+    - script: |
+        npm run lint
+      displayName: 'ESLint Check'
+    
+    - script: |
+        npm run format -- --check
+      displayName: 'Prettier Format Check'
+    
+    - script: |
+        npx playwright install --with-deps
+      displayName: 'Install Playwright Browsers'
+    
+    - script: |
+        npm run test:smoke
+      displayName: 'Run Smoke Tests'
+      env:
+        CI: true
+        HEADLESS: true
+        WORKERS: 1
+    
+    - task: PublishTestResults@2
+      displayName: 'Publish Test Results'
+      condition: always()
+      inputs:
+        testResultsFormat: 'JUnit'
+        testResultsFiles: 'test-results/junit.xml'
+        testRunTitle: 'PR Validation Test Results'
+        mergeTestResults: true
