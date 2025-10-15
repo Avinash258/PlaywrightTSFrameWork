@@ -329,4 +329,4 @@ ENVIRONMENT=ci
 
 ## 📄 License
 
-This project is licensed under the MIT License.
+This project is of Newvision Software.
