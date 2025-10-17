@@ -13,7 +13,7 @@ export default defineConfig({
     ['junit', { outputFile: 'test-results/junit.xml' }]
   ],
   use: {
-    headless: false, // Changed to false for headed mode
+    headless: true, // Changed to false for headed mode
     viewport: { width: 1280, height: 720 },
     actionTimeout: 10_000,
     navigationTimeout: 30_000,
