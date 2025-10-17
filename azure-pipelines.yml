@@ -1,19 +1,33 @@
-# Azure DevOps Pipeline for Playwright Tests
+# Enhanced Azure DevOps Pipeline with Test Dashboard
 trigger:
   branches:
     include:
       - main
       - develop
+      - master
+      - feature/*
+      - bugfix/*
+      - hotfix/*
   paths:
     exclude:
       - README.md
       - .gitignore
+      - docs/*
+      - "*.md"
+  batch: true
 
 pr:
   branches:
     include:
       - main
       - develop
+      - master
+  paths:
+    exclude:
+      - README.md
+      - .gitignore
+      - docs/*
+      - "*.md"
 
 pool:
   vmImage: 'ubuntu-latest'
@@ -21,10 +35,12 @@ pool:
 variables:
   NODE_VERSION: '18.x'
   PLAYWRIGHT_BROWSERS_PATH: 0
+  TEST_RESULTS_DIR: 'test-results'
+  REPORT_DIR: 'playwright-report'
 
 stages:
 - stage: Test
-  displayName: 'Run Playwright Tests'
+  displayName: 'Run Playwright Tests with Dashboard'
   jobs:
   - job: PlaywrightTests
     displayName: 'Playwright Test Execution'
@@ -52,40 +68,208 @@ stages:
       displayName: 'ESLint Check'
       continueOnError: true
     
+    # Run tests with multiple output formats
     - script: |
-        npm test
+        # Ensure test-results directory exists
+        mkdir -p $(TEST_RESULTS_DIR)
+        
+        # Run tests with reporters
+        npm test -- --reporter=junit --reporter=html --reporter=json
       displayName: 'Run Playwright Tests'
       env:
         CI: true
         HEADLESS: true
-        WORKERS: 1
+        WORKERS: 2
+        PLAYWRIGHT_JSON_OUTPUT_NAME: $(TEST_RESULTS_DIR)/playwright-results.json
     
+    # Ensure JUnit XML exists for Azure DevOps integration
+    - script: |
+        if [ ! -f "$(TEST_RESULTS_DIR)/junit.xml" ]; then
+          echo "JUnit XML not found, creating minimal XML for Azure DevOps compatibility"
+          mkdir -p $(TEST_RESULTS_DIR)
+          cat > $(TEST_RESULTS_DIR)/junit.xml << 'EOF'
+        <?xml version="1.0" encoding="UTF-8"?>
+        <testsuites>
+          <testsuite name="Playwright Tests" tests="0" failures="0" skipped="0" time="0">
+            <testcase name="No JUnit results available" classname="placeholder" time="0"/>
+          </testsuite>
+        </testsuites>
+        EOF
+        fi
+        
+        # Verify the file exists
+        ls -la $(TEST_RESULTS_DIR)/
+      displayName: 'Ensure JUnit XML Exists'
+      condition: always()
+
+    # Generate test summary
+    - script: |
+        echo "## Test Execution Summary" > test-summary.md
+        echo "- **Build Number:** $(Build.BuildNumber)" >> test-summary.md
+        echo "- **Branch:** $(Build.SourceBranchName)" >> test-summary.md
+        echo "- **Commit:** $(Build.SourceVersion)" >> test-summary.md
+        echo "- **Date:** $(date)" >> test-summary.md
+        echo "" >> test-summary.md
+        if [ -f "$(TEST_RESULTS_DIR)/playwright-results.json" ]; then
+          echo "Test results JSON found" >> test-summary.md
+        fi
+        if [ -f "$(TEST_RESULTS_DIR)/junit.xml" ]; then
+          echo "JUnit XML found" >> test-summary.md
+        fi
+      displayName: 'Generate Test Summary'
+      condition: always()
+
+    # Publish JUnit Test Results - This creates the Tests tab
     - task: PublishTestResults@2
-      displayName: 'Publish Test Results'
+      displayName: 'Publish Test Results to Tests Tab'
       condition: always()
       inputs:
         testResultsFormat: 'JUnit'
-        testResultsFiles: 'test-results/junit.xml'
-        testRunTitle: 'Playwright Test Results'
+        testResultsFiles: '$(TEST_RESULTS_DIR)/junit.xml'
+        testRunTitle: 'Playwright Tests - Build $(Build.BuildNumber)'
         mergeTestResults: true
-    
+        failTaskOnFailedTests: false
+        publishRunAttachments: true
+
+    # Publish HTML Report as Build Artifact
     - task: PublishBuildArtifacts@1
-      displayName: 'Publish HTML Report'
+      displayName: 'Publish HTML Test Report'
       condition: always()
       inputs:
-        pathToPublish: 'playwright-report'
-        artifactName: 'playwright-report'
-    
+        pathToPublish: '$(REPORT_DIR)'
+        artifactName: 'playwright-html-report'
+        publishLocation: 'Container'
+
+    # Publish Test Results Directory
     - task: PublishBuildArtifacts@1
-      displayName: 'Publish Test Results'
+      displayName: 'Publish Test Results Files'
+      condition: always()
+      inputs:
+        pathToPublish: '$(TEST_RESULTS_DIR)'
+        artifactName: 'test-results'
+        publishLocation: 'Container'
+
+    # Publish Test Screenshots/Videos if available
+    - task: PublishBuildArtifacts@1
+      displayName: 'Publish Test Screenshots'
       condition: always()
       inputs:
         pathToPublish: 'test-results'
-        artifactName: 'test-results'
+        artifactName: 'test-screenshots'
+        publishLocation: 'Container'
 
-  - job: SmokeTests
-    displayName: 'Smoke Tests Only'
-    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+    # Create and Publish Code Coverage if available
+    - script: |
+        if [ -d "coverage" ]; then
+          echo "##vso[task.setvariable variable=HAS_COVERAGE]true"
+          echo "Publishing code coverage"
+        else
+          echo "##vso[task.setvariable variable=HAS_COVERAGE]false"
+          echo "No coverage directory found"
+        fi
+      displayName: 'Check for Coverage'
+      condition: always()
+
+    # Publish Coverage Results (if available) - Updated to version 2
+    - task: PublishCodeCoverageResults@2
+      displayName: 'Publish Code Coverage'
+      condition: and(always(), eq(variables['HAS_COVERAGE'], 'true'))
+      inputs:
+        summaryFileLocation: 'coverage/cobertura-coverage.xml'
+        pathToSources: '$(System.DefaultWorkingDirectory)'
+        reportDirectory: 'coverage'
+        codecoverageTool: 'Cobertura'
+
+    # Create Test Insights Dashboard Data
+    - script: |
+        mkdir -p dashboard-data
+        
+        # Initialize variables
+        TOTAL_TESTS=0
+        FAILED_TESTS=0
+        SKIPPED_TESTS=0
+        
+        # First try to extract from JUnit XML
+        if [ -f "$(TEST_RESULTS_DIR)/junit.xml" ] && [ -s "$(TEST_RESULTS_DIR)/junit.xml" ]; then
+          echo "Parsing JUnit XML for metrics..."
+          TOTAL_TESTS=$(grep -o 'tests="[0-9]*"' $(TEST_RESULTS_DIR)/junit.xml | cut -d'"' -f2 | head -1)
+          FAILED_TESTS=$(grep -o 'failures="[0-9]*"' $(TEST_RESULTS_DIR)/junit.xml | cut -d'"' -f2 | head -1)
+          SKIPPED_TESTS=$(grep -o 'skipped="[0-9]*"' $(TEST_RESULTS_DIR)/junit.xml | cut -d'"' -f2 | head -1)
+          echo "JUnit metrics: Total=${TOTAL_TESTS}, Failed=${FAILED_TESTS}, Skipped=${SKIPPED_TESTS}"
+        fi
+        
+        # Fallback: Try to extract from JSON results
+        if [ "${TOTAL_TESTS:-0}" -eq 0 ] && [ -f "$(TEST_RESULTS_DIR)/results.json" ]; then
+          echo "Parsing JSON results for metrics..."
+          TOTAL_TESTS=$(node -e "
+            try {
+              const data = require('./$(TEST_RESULTS_DIR)/results.json');
+              const stats = data.stats;
+              console.log(stats.expected + stats.unexpected + stats.skipped);
+            } catch(e) { console.log(0); }
+          ")
+          FAILED_TESTS=$(node -e "
+            try {
+              const data = require('./$(TEST_RESULTS_DIR)/results.json');
+              console.log(data.stats.unexpected || 0);
+            } catch(e) { console.log(0); }
+          ")
+          SKIPPED_TESTS=$(node -e "
+            try {
+              const data = require('./$(TEST_RESULTS_DIR)/results.json');
+              console.log(data.stats.skipped || 0);
+            } catch(e) { console.log(0); }
+          ")
+          echo "JSON metrics: Total=${TOTAL_TESTS}, Failed=${FAILED_TESTS}, Skipped=${SKIPPED_TESTS}"
+        fi
+        
+        # Calculate pass rate using node.js instead of bc
+        if [ "${TOTAL_TESTS:-0}" -gt 0 ]; then
+          PASSED_TESTS=$((${TOTAL_TESTS:-0} - ${FAILED_TESTS:-0} - ${SKIPPED_TESTS:-0}))
+          PASS_RATE=$(node -e "console.log(Math.round((${PASSED_TESTS:-0} * 100) / ${TOTAL_TESTS:-1}))")
+        else
+          PASSED_TESTS=0
+          PASS_RATE=0
+        fi
+        
+        # Create metrics JSON
+        cat > dashboard-data/metrics.json << EOF
+        {
+          "buildNumber": "$(Build.BuildNumber)",
+          "buildId": "$(Build.BuildId)",
+          "branch": "$(Build.SourceBranchName)",
+          "commit": "$(Build.SourceVersion)",
+          "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+          "totalTests": ${TOTAL_TESTS:-0},
+          "passedTests": ${PASSED_TESTS:-0},
+          "failedTests": ${FAILED_TESTS:-0},
+          "skippedTests": ${SKIPPED_TESTS:-0},
+          "passRate": ${PASS_RATE:-0}
+        }
+        EOF
+        
+        echo "Final Test Metrics Generated:"
+        cat dashboard-data/metrics.json
+        
+        # Set pipeline variables for use in other stages
+        echo "##vso[task.setvariable variable=TEST_TOTAL]${TOTAL_TESTS:-0}"
+        echo "##vso[task.setvariable variable=TEST_PASSED]${PASSED_TESTS:-0}"
+        echo "##vso[task.setvariable variable=TEST_FAILED]${FAILED_TESTS:-0}"
+        echo "##vso[task.setvariable variable=TEST_PASS_RATE]${PASS_RATE:-0}"
+      displayName: 'Generate Dashboard Metrics'
+      condition: always()
+
+    # Publish Dashboard Data
+    - task: PublishBuildArtifacts@1
+      displayName: 'Publish Dashboard Data'
+      condition: always()
+      inputs:
+        pathToPublish: 'dashboard-data'
+        artifactName: 'dashboard-data'
+
+  # Parallel job for API tests
+  - job: APITests
+    displayName: 'API Tests'
     steps:
     
     - task: NodeTool@0
@@ -98,16 +282,53 @@ stages:
       displayName: 'Install Dependencies'
     
     - script: |
-        npx playwright install --with-deps
-      displayName: 'Install Playwright Browsers'
+        npx playwright install
+      displayName: 'Install Playwright'
     
     - script: |
-        npm run test:smoke
+        # Ensure test-results directory exists
+        mkdir -p test-results
+        npm run test:api -- --reporter=junit --reporter=json
+      displayName: 'Run API Tests'
+      env:
+        CI: true
+    
+    - task: PublishTestResults@2
+      displayName: 'Publish API Test Results'
+      condition: always()
+      inputs:
+        testResultsFormat: 'JUnit'
+        testResultsFiles: 'test-results/junit.xml'
+        testRunTitle: 'API Tests - Build $(Build.BuildNumber)'
+        mergeTestResults: true
+
+# Post-deployment verification stage
+- stage: PostDeploymentTests
+  displayName: 'Post-Deployment Verification'
+  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+  jobs:
+  - job: SmokeTests
+    displayName: 'Smoke Tests'
+    steps:
+    
+    - task: NodeTool@0
+      displayName: 'Install Node.js'
+      inputs:
+        versionSpec: $(NODE_VERSION)
+    
+    - script: |
+        npm ci
+        npx playwright install --with-deps
+      displayName: 'Setup'
+    
+    - script: |
+        # Ensure test-results directory exists
+        mkdir -p test-results
+        npm run test:smoke -- --reporter=junit --reporter=html
       displayName: 'Run Smoke Tests'
       env:
         CI: true
         HEADLESS: true
-        WORKERS: 1
     
     - task: PublishTestResults@2
       displayName: 'Publish Smoke Test Results'
@@ -115,5 +336,141 @@ stages:
       inputs:
         testResultsFormat: 'JUnit'
         testResultsFiles: 'test-results/junit.xml'
-        testRunTitle: 'Smoke Test Results'
-        mergeTestResults: true
+        testRunTitle: 'Smoke Tests - Build $(Build.BuildNumber)'
+
+# Dashboard Summary Stage
+- stage: Dashboard
+  displayName: 'Test Dashboard Summary'
+  condition: always()
+  dependsOn: [Test, PostDeploymentTests]
+  jobs:
+  - job: GenerateDashboard
+    displayName: 'Generate Test Dashboard'
+    steps:
+    
+    # Download all artifacts
+    - task: DownloadBuildArtifacts@0
+      displayName: 'Download Test Artifacts'
+      inputs:
+        buildType: 'current'
+        downloadType: 'specific'
+        downloadPath: '$(System.ArtifactsDirectory)'
+    
+    # Create comprehensive dashboard
+    - script: |
+        mkdir -p final-dashboard
+        
+        # Extract metrics from artifacts if available
+        TOTAL_TESTS="Unknown"
+        PASSED_TESTS="Unknown" 
+        FAILED_TESTS="Unknown"
+        PASS_RATE="Unknown"
+        
+        if [ -f "$(System.ArtifactsDirectory)/dashboard-data/metrics.json" ]; then
+          echo "Loading metrics from artifacts..."
+          TOTAL_TESTS=$(node -e "console.log(require('$(System.ArtifactsDirectory)/dashboard-data/metrics.json').totalTests || 'Unknown')")
+          PASSED_TESTS=$(node -e "console.log(require('$(System.ArtifactsDirectory)/dashboard-data/metrics.json').passedTests || 'Unknown')")
+          FAILED_TESTS=$(node -e "console.log(require('$(System.ArtifactsDirectory)/dashboard-data/metrics.json').failedTests || 'Unknown')")
+          PASS_RATE=$(node -e "console.log(require('$(System.ArtifactsDirectory)/dashboard-data/metrics.json').passRate || 'Unknown')")
+        fi
+        
+        echo "# 🧪 Test Execution Dashboard" > final-dashboard/README.md
+        echo "" >> final-dashboard/README.md
+        echo "## Build Information" >> final-dashboard/README.md
+        echo "- **Build Number:** $(Build.BuildNumber)" >> final-dashboard/README.md
+        echo "- **Build ID:** $(Build.BuildId)" >> final-dashboard/README.md
+        echo "- **Branch:** $(Build.SourceBranchName)" >> final-dashboard/README.md
+        echo "- **Commit:** $(Build.SourceVersion)" >> final-dashboard/README.md
+        echo "- **Date:** $(date)" >> final-dashboard/README.md
+        echo "- **Pipeline:** $(System.DefinitionName)" >> final-dashboard/README.md
+        echo "" >> final-dashboard/README.md
+        
+        echo "## 📊 Test Results Summary" >> final-dashboard/README.md
+        echo "" >> final-dashboard/README.md
+        echo "| Metric | Value |" >> final-dashboard/README.md
+        echo "|--------|-------|" >> final-dashboard/README.md
+        echo "| **Total Tests** | ${TOTAL_TESTS} |" >> final-dashboard/README.md
+        echo "| **Passed** | ${PASSED_TESTS} ✅ |" >> final-dashboard/README.md
+        echo "| **Failed** | ${FAILED_TESTS} ❌ |" >> final-dashboard/README.md
+        echo "| **Pass Rate** | ${PASS_RATE}% |" >> final-dashboard/README.md
+        echo "" >> final-dashboard/README.md
+        
+        # Add links to artifacts
+        echo "## 📁 Available Reports" >> final-dashboard/README.md
+        echo "- [HTML Test Report](playwright-html-report/index.html)" >> final-dashboard/README.md
+        echo "- [JUnit Results](test-results/junit.xml)" >> final-dashboard/README.md
+        echo "- [Test Screenshots](test-screenshots/)" >> final-dashboard/README.md
+        echo "" >> final-dashboard/README.md
+        
+        echo "## 🔗 Useful Links" >> final-dashboard/README.md
+        echo "- [Azure DevOps Tests Tab]($(System.CollectionUri)$(System.TeamProject)/_build/results?buildId=$(Build.BuildId)&view=ms.vss-test-web.build-test-results-tab)" >> final-dashboard/README.md
+        echo "- [Build Summary]($(System.CollectionUri)$(System.TeamProject)/_build/results?buildId=$(Build.BuildId))" >> final-dashboard/README.md
+        echo "" >> final-dashboard/README.md
+        
+        # Create an HTML dashboard with actual metrics
+        cat > final-dashboard/dashboard.html << EOF
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Test Dashboard - Build $(Build.BuildNumber)</title>
+            <style>
+                body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; margin: 40px; }
+                .header { background: #0078d4; color: white; padding: 20px; border-radius: 8px; }
+                .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin: 20px 0; }
+                .metric-card { background: #f5f5f5; padding: 20px; border-radius: 8px; text-align: center; }
+                .metric-value { font-size: 2em; font-weight: bold; color: #0078d4; }
+                .failed { color: #e74c3c; }
+                .passed { color: #27ae60; }
+                .links { margin: 20px 0; }
+                .link-button { display: inline-block; background: #0078d4; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px; margin: 5px; }
+                .status { padding: 15px; margin: 20px 0; border-radius: 8px; text-align: center; font-weight: bold; }
+                .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+                .failure { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <h1>🧪 Test Execution Dashboard</h1>
+                <p>Build $(Build.BuildNumber) - $(date)</p>
+            </div>
+            
+            <div class="metrics">
+                <div class="metric-card">
+                    <div class="metric-value">${TOTAL_TESTS}</div>
+                    <div>Total Tests</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value passed">${PASSED_TESTS}</div>
+                    <div>Passed</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value failed">${FAILED_TESTS}</div>
+                    <div>Failed</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">${PASS_RATE}%</div>
+                    <div>Pass Rate</div>
+                </div>
+            </div>
+            
+            <div class="status \$(if [ "\${FAILED_TESTS}" = "0" ]; then echo "success"; else echo "failure"; fi)">
+                \$(if [ "\${FAILED_TESTS}" = "0" ]; then echo "✅ All tests passed!"; else echo "❌ Some tests failed"; fi)
+            </div>
+            
+            <div class="links">
+                <a href="../playwright-html-report/index.html" class="link-button">📊 HTML Report</a>
+                <a href="../test-results/junit.xml" class="link-button">📋 JUnit Results</a>
+                <a href="$(System.CollectionUri)$(System.TeamProject)/_build/results?buildId=$(Build.BuildId)&view=ms.vss-test-web.build-test-results-tab" class="link-button">🔗 Azure Tests Tab</a>
+            </div>
+        </body>
+        </html>
+        EOF
+        
+      displayName: 'Generate Final Dashboard'
+    
+    - task: PublishBuildArtifacts@1
+      displayName: 'Publish Final Dashboard'
+      condition: always()
+      inputs:
+        pathToPublish: 'final-dashboard'
+        artifactName: 'test-dashboard'
