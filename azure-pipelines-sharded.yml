@@ -1,0 +1,36 @@
+# Standalone Sharded Playwright Pipeline
+# Quality checks → 5 parallel shards → merged combined report
+#
+# Use this file directly in Azure DevOps:
+#   Pipelines → New pipeline → Existing YAML → azure-pipelines-sharded.yml
+#
+# Or use azure-pipelines.yml (default) which includes this + smoke + dashboard.
+
+trigger:
+  branches:
+    include:
+      - main
+      - develop
+      - master
+
+pr:
+  branches:
+    include:
+      - main
+      - develop
+      - master
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  NODE_VERSION: '18.x'
+  SHARD_TOTAL: '5'
+  TEST_RESULTS_DIR: 'test-results'
+
+stages:
+  - template: pipelines/templates/playwright-sharded-stages.yml
+    parameters:
+      nodeVersion: $(NODE_VERSION)
+      shardTotal: $(SHARD_TOTAL)
+      testResultsDir: $(TEST_RESULTS_DIR)

@@ -1,23 +1,126 @@
-name: Playwright Tests
-on: [push, pull_request]
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-      - name: Install dependencies
-        run: npm ci
-      - name: Install Playwright browsers
-        run: npx playwright install --with-deps
-      - name: Run tests
-        run: npx playwright test --reporter=list,html
-      - name: Upload Artifacts
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: playwright-results
-          path: playwright-report/
+name: Playwright Tests
+
+on:
+  push:
+    branches: [main, master, develop]
+  pull_request:
+    branches: [main, master, develop]
+
+env:
+  SHARD_TOTAL: 5
+
+jobs:
+  # Step 1: Parallel shard jobs — each runs ~1/5 of the suite
+  playwright-tests:
+    timeout-minutes: 120
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - shardIndex: 1
+            shard: '1/5'
+          - shardIndex: 2
+            shard: '2/5'
+          - shardIndex: 3
+            shard: '3/5'
+          - shardIndex: 4
+            shard: '4/5'
+          - shardIndex: 5
+            shard: '5/5'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Playwright tests --shard=${{ matrix.shard }}
+        run: npx playwright test --shard=${{ matrix.shard }}
+        env:
+          CI: true
+          SHARD_INDEX: ${{ matrix.shardIndex }}
+          SHARD_TOTAL: ${{ env.SHARD_TOTAL }}
+          WORKERS: 2
+
+      - name: Upload blob report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: blob-report-${{ matrix.shardIndex }}
+          path: blob-report
+          retention-days: 1
+
+      - name: Upload JUnit results
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: junit-shard-${{ matrix.shardIndex }}
+          path: test-results/junit-shard-${{ matrix.shardIndex }}.xml
+          retention-days: 1
+
+  # Step 2: Merge all shard reports into one combined report
+  merge-reports:
+    if: ${{ !cancelled() }}
+    needs: [playwright-tests]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Download all shard blob reports
+        uses: actions/download-artifact@v4
+        with:
+          path: all-shard-reports
+          pattern: blob-report-*
+          merge-multiple: true
+
+      - name: Merge into combined report
+        run: npx playwright merge-reports --config=merge.config.ts ./all-shard-reports
+
+      - name: Upload merged HTML report
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-html-report
+          path: playwright-report
+          retention-days: 14
+
+      - name: Upload merged JUnit report
+        uses: actions/upload-artifact@v4
+        with:
+          name: junit-combined
+          path: test-results/junit.xml
+          retention-days: 14
+
+      - name: Upload merged JSON report
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-results-json
+          path: test-results/results.json
+          retention-days: 14
+
+      - name: Publish combined test results
+        uses: dorny/test-reporter@v1
+        if: ${{ !cancelled() }}
+        with:
+          name: Playwright Combined Report
+          path: test-results/junit.xml
+          reporter: java-junit
+          fail-on-error: true
+

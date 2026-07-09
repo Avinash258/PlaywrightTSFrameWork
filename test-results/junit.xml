@@ -1,22 +1,10 @@
-<testsuites id="" name="" tests="9" failures="0" skipped="0" errors="0" time="48.523526">
-<testsuite name="optimized-auth.spec.ts" timestamp="2025-10-15T14:07:11.574Z" hostname="chromium" tests="9" failures="0" skipped="0" time="29.766" errors="0">
-<testcase name="Authentication - Optimized › should login successfully with valid credentials @smoke" classname="optimized-auth.spec.ts" time="3.393">
+<testsuites id="" name="" tests="3" failures="0" skipped="0" errors="0" time="1.6368389999999995">
+<testsuite name="api\shard-get.api.spec.ts" timestamp="2026-07-09T17:40:18.571Z" hostname="chromium" tests="3" failures="0" skipped="0" time="0.811" errors="0">
+<testcase name="Sharded API - GET Operations › GET object object-1 returns 200" classname="api\shard-get.api.spec.ts" time="0.308">
 </testcase>
-<testcase name="Authentication - Optimized › should show error for locked user" classname="optimized-auth.spec.ts" time="2.601">
+<testcase name="Sharded API - GET Operations › GET object object-2 returns 200" classname="api\shard-get.api.spec.ts" time="0.268">
 </testcase>
-<testcase name="Authentication - Optimized › should show error for invalid credentials" classname="optimized-auth.spec.ts" time="2.744">
-</testcase>
-<testcase name="Authentication - Optimized › should clear fields when clicking login with empty fields" classname="optimized-auth.spec.ts" time="3.001">
-</testcase>
-<testcase name="Authentication - Optimized › should maintain login button state" classname="optimized-auth.spec.ts" time="2.319">
-</testcase>
-<testcase name="Authentication - Data Driven › login with standard_user should succeed" classname="optimized-auth.spec.ts" time="2.465">
-</testcase>
-<testcase name="Authentication - Data Driven › login with locked_out_user should fail" classname="optimized-auth.spec.ts" time="2.412">
-</testcase>
-<testcase name="Authentication - Data Driven › login with problem_user should succeed" classname="optimized-auth.spec.ts" time="2.744">
-</testcase>
-<testcase name="Authentication - Data Driven › login with performance_glitch_user should succeed" classname="optimized-auth.spec.ts" time="8.087">
+<testcase name="Sharded API - GET Operations › GET object object-3 returns 200" classname="api\shard-get.api.spec.ts" time="0.235">
 </testcase>
 </testsuite>
 </testsuites>

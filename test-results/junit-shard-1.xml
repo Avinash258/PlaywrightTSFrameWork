@@ -1,0 +1,88 @@
+<testsuites id="" name="" tests="20" failures="0" skipped="20" errors="0" time="0.052836000000000015">
+<testsuite name="optimized-e2e.spec.ts" timestamp="2026-07-09T17:44:58.563Z" hostname="chromium" tests="5" failures="0" skipped="5" time="0" errors="0">
+<testcase name="E2E Test Suite - Serial Execution › E2E Shopping Flow › complete shopping flow from login to checkout @smoke" classname="optimized-e2e.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="E2E Test Suite - Serial Execution › E2E Shopping Flow › should handle empty cart scenario" classname="optimized-e2e.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="E2E Test Suite - Serial Execution › E2E Shopping Flow › should add multiple quantities of same product" classname="optimized-e2e.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="E2E Test Suite - Serial Execution › Product Management › should display all products correctly" classname="optimized-e2e.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="E2E Test Suite - Serial Execution › Product Management › should filter products by price" classname="optimized-e2e.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="ui\shard-auth.ui.spec.ts" timestamp="2026-07-09T17:44:58.563Z" hostname="chromium" tests="10" failures="0" skipped="10" time="0" errors="0">
+<testcase name="Sharded UI - Authentication Scenarios › auth standard-user @regression" classname="ui\shard-auth.ui.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Sharded UI - Authentication Scenarios › auth locked-user @regression" classname="ui\shard-auth.ui.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Sharded UI - Authentication Scenarios › auth problem-user @regression" classname="ui\shard-auth.ui.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Sharded UI - Authentication Scenarios › auth performance-user @regression" classname="ui\shard-auth.ui.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Sharded UI - Authentication Scenarios › auth invalid-user @regression" classname="ui\shard-auth.ui.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Sharded UI - Authentication Scenarios › auth wrong-password @regression" classname="ui\shard-auth.ui.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Sharded UI - Authentication Scenarios › auth empty-username @regression" classname="ui\shard-auth.ui.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Sharded UI - Authentication Scenarios › auth empty-password @regression" classname="ui\shard-auth.ui.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Sharded UI - Authentication Scenarios › auth empty-both @regression" classname="ui\shard-auth.ui.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Sharded UI - Authentication Scenarios › auth standard-relogin @regression" classname="ui\shard-auth.ui.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="ui\shard-products.ui.spec.ts" timestamp="2026-07-09T17:44:58.563Z" hostname="chromium" tests="5" failures="0" skipped="5" time="0" errors="0">
+<testcase name="Sharded UI - Product Catalog › product backpack-visible @regression" classname="ui\shard-products.ui.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Sharded UI - Product Catalog › product bike-light-visible @regression" classname="ui\shard-products.ui.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Sharded UI - Product Catalog › product tshirt-visible @regression" classname="ui\shard-products.ui.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Sharded UI - Product Catalog › product jacket-visible @regression" classname="ui\shard-products.ui.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Sharded UI - Product Catalog › product onesie-visible @regression" classname="ui\shard-products.ui.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+</testsuites>

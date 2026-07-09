@@ -29,6 +29,6 @@
       "@data/*": ["src/data/*"]
     }
   },
-  "include": ["src", "tests", "playwright.config.ts"],
+  "include": ["src", "tests", "scripts", "playwright.config.ts", "merge.config.ts"],
   "exclude": ["node_modules", "dist", "test-results", "playwright-report", "allure-results"]
 }

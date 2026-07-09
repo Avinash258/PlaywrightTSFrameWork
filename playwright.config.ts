@@ -1,19 +1,33 @@
 import { defineConfig, devices } from '@playwright/test';
 
+const shardIndex = process.env.SHARD_INDEX;
+const isCI = !!process.env.CI;
+const isShardRun = !!shardIndex || process.env.USE_BLOB_REPORTER === 'true';
+const useBlobReporter = isCI || isShardRun;
+const junitFile = shardIndex
+  ? `test-results/junit-shard-${shardIndex}.xml`
+  : 'test-results/junit.xml';
+
 export default defineConfig({
   testDir: 'tests',
   timeout: 30_000,
   expect: { timeout: 5_000 },
-  fullyParallel: false, // Changed to false for serialized execution
-  retries: process.env.CI ? 2 : 0,
-  workers: 1, // Set to 1 for single browser instance
-  reporter: [
-    ['list'],
-    ['html', { open: 'never', outputFolder: 'playwright-report' }],
-    ['junit', { outputFile: 'test-results/junit.xml' }]
-  ],
+  fullyParallel: true,
+  retries: isCI ? 2 : 0,
+  workers: process.env.WORKERS ? Number(process.env.WORKERS) : isCI ? 2 : 1,
+  reporter: useBlobReporter
+    ? [
+        ['blob', { outputDir: 'blob-report' }],
+        ['list'],
+        ['junit', { outputFile: junitFile }],
+      ]
+    : [
+        ['list'],
+        ['html', { open: 'never', outputFolder: 'playwright-report' }],
+        ['junit', { outputFile: junitFile }],
+      ],
   use: {
-    headless: true, // Changed to false for headed mode
+    headless: process.env.HEADLESS !== 'false',
     viewport: { width: 1280, height: 720 },
     actionTimeout: 10_000,
     navigationTimeout: 30_000,
@@ -21,18 +35,17 @@ export default defineConfig({
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
     ignoreHTTPSErrors: true,
-    baseURL: process.env.BASE_URL || 'https://www.saucedemo.com'
+    baseURL: process.env.BASE_URL || 'https://www.saucedemo.com',
   },
   projects: [
     {
       name: 'chromium',
-      use: { 
+      use: {
         ...devices['Desktop Chrome'],
         launchOptions: {
-          args: ['--disable-web-security', '--disable-features=VizDisplayCompositor']
-        }
-      }
-    }
-    // Removed other browser projects to run only on Chrome
-  ]
+          args: ['--disable-web-security', '--disable-features=VizDisplayCompositor'],
+        },
+      },
+    },
+  ],
 });

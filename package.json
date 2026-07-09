@@ -15,6 +15,15 @@
     "test:smoke": "playwright test --grep @smoke",
     "test:regression": "playwright test --grep @regression",
     "test:api": "playwright test tests/api/",
+    "test:shard": "playwright test --shard",
+    "test:shard:1": "playwright test --shard=1/5",
+    "test:shard:2": "playwright test --shard=2/5",
+    "test:shard:3": "playwright test --shard=3/5",
+    "test:shard:4": "playwright test --shard=4/5",
+    "test:shard:5": "playwright test --shard=5/5",
+    "test:sharded:all": "tsx scripts/run-sharded-tests.ts",
+    "test:merge-reports": "playwright merge-reports --config=merge.config.ts ./all-shard-reports",
+    "test:list": "playwright test --list",
     "test:report": "npx playwright show-report",
     "test:azure": "CI=true HEADLESS=true WORKERS=1 playwright test",
     "test:azure-smoke": "CI=true HEADLESS=true WORKERS=1 playwright test --grep @smoke",
@@ -34,6 +43,7 @@
     "@typescript-eslint/parser": "^6.0.0",
     "eslint": "^8.50.0",
     "prettier": "^2.8.0",
+    "tsx": "^4.19.4",
     "typescript": "^5.3.0",
     "xlsx": "^0.18.5"
   }

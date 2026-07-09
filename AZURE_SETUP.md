@@ -12,14 +12,18 @@ This guide will help you set up Azure DevOps pipelines for your Playwright TypeS
 4. Select **Azure Repos Git** (or your repository type)
 5. Choose your repository
 6. Select **Existing Azure Pipelines YAML file**
-7. Choose `azure-pipelines.yml` from the root directory
+7. Choose **`azure-pipelines.yml`** from the root directory (default)
+
+For sharding only (no smoke/dashboard stages), use **`azure-pipelines-sharded.yml`**.
 
 ### 2. **Pipeline Configuration**
 
-The framework includes two pipeline files:
+The framework includes these pipeline files:
 
-- **`azure-pipelines.yml`** - Main pipeline for branches (main, develop)
-- **`azure-pipelines-pr.yml`** - PR validation pipeline
+- **`azure-pipelines.yml`** — **Default** pipeline (quality + 5 shards + merge + smoke + dashboard)
+- **`azure-pipelines-sharded.yml`** — Standalone sharded pipeline (quality + 5 shards + merge)
+- **`pipelines/templates/playwright-sharded-stages.yml`** — Reusable sharded stages template
+- **`azure-pipelines-pr.yml`** — PR validation pipeline (smoke tests)
 
 ### 3. **Environment Variables (Optional)**
 
@@ -36,13 +40,12 @@ ENVIRONMENT=ci
 
 ### **Main Pipeline (`azure-pipelines.yml`)**
 
-✅ **Triggers**: Main and develop branches  
-✅ **TypeScript Type Checking**  
-✅ **ESLint Code Quality**  
-✅ **Full Test Suite Execution**  
-✅ **JUnit Test Results Publishing**  
-✅ **HTML Report Artifacts**  
-✅ **Smoke Tests on Main Branch**  
+✅ **Triggers**: Main, develop, master, feature/*, bugfix/*, hotfix/*  
+✅ **Stage 1 — Quality**: TypeScript, ESLint, Prettier  
+✅ **Stage 2 — Test**: 5 parallel shards (`--shard=1/5` … `5/5`) + merged report  
+✅ **Stage 3 — Smoke**: `@smoke` tests on main branch  
+✅ **Stage 4 — Dashboard**: Combined metrics from merged report  
+✅ **JUnit + HTML + JSON** artifacts from merged shard reports  
 
 ### **PR Pipeline (`azure-pipelines-pr.yml`)**
 
@@ -51,17 +54,16 @@ ENVIRONMENT=ci
 ✅ **Smoke Tests**  
 ✅ **Fast Feedback**  
 
-## 🔧 Pipeline Jobs
+## 🔧 Pipeline Stages
 
-### **PlaywrightTests Job**
-- Installs Node.js 18.x
-- Installs dependencies with `npm ci`
-- Installs Playwright browsers with system dependencies
-- Runs TypeScript type checking
-- Runs ESLint (non-blocking)
-- Executes full test suite
-- Publishes JUnit test results
-- Publishes HTML report and test artifacts
+### **Quality Stage** (runs first)
+- TypeScript type check
+- ESLint (non-blocking)
+- Prettier format check (non-blocking)
+
+### **Test Stage** (5 parallel shards + merge)
+- **PlaywrightTests** — matrix jobs: `--shard=1/5` through `--shard=5/5`
+- **MergeReports** — combines all shard blob reports into one HTML + JUnit + JSON report
 
 ### **SmokeTests Job** (Main branch only)
 - Runs only smoke tests (`@smoke` tagged tests)
