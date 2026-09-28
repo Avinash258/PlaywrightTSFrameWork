@@ -1,1 +1,22 @@
 node_modules
+
+
+# Generated reports / caches
+node_modules/
+/test-results/
+/playwright-report/
+/blob-report/
+/all-blob-reports/
+/allure-results/
+/allure-report/
+/playwright/.cache/
+.playwright-mcp/
+.env
+.env.*
+!.env.example
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
+Thumbs.db
+*.exe

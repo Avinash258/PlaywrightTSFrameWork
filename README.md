@@ -2,11 +2,11 @@
 
 Production-ready **Playwright + TypeScript** framework with Page Object Model, environment configs, sharded CI execution and Azure DevOps / GitHub Actions wiring.
 
-> Related: [HTD2.0Azure](https://github.com/Avinash258/HTD2.0Azure) · [PlaywrightADO](https://github.com/Avinash258/PlaywrightADO) · [Portfolio](https://avinash258.github.io/Protfolio/)
+> Related: [HTD2.0Azure](https://github.com/Avinash258/HTD2.0Azure) Â· [PlaywrightADO](https://github.com/Avinash258/PlaywrightADO) Â· [Portfolio](https://avinash258.github.io/Protfolio/)
 
 ## Overview
 
-Enterprise-style UI/API automation scaffold used for Sauce Demo–style demos and as a pattern for client framework rollouts. Emphasises typed page objects, smoke/regression packs, multi-browser runs and report merging for sharded pipelines.
+Enterprise-style UI/API automation scaffold used for Sauce Demoâ€“style demos and as a pattern for client framework rollouts. Emphasises typed page objects, smoke/regression packs, multi-browser runs and report merging for sharded pipelines.
 
 ## Features
 
@@ -19,9 +19,9 @@ Enterprise-style UI/API automation scaffold used for Sauce Demo–style demos an
 
 ## Stack
 
-- TypeScript · Playwright
-- Azure DevOps pipelines · GitHub Actions–friendly scripts
-- ESLint · dotenv
+- TypeScript Â· Playwright
+- Azure DevOps pipelines Â· GitHub Actionsâ€“friendly scripts
+- ESLint Â· dotenv
 
 ## Getting started
 
@@ -45,15 +45,15 @@ npm run test:sharded:all
 npm run test:merge-reports
 ```
 
-Azure-oriented runs: `npm run test:azure` · `npm run test:azure-smoke`.
+Azure-oriented runs: `npm run test:azure` Â· `npm run test:azure-smoke`.
 
 ## Docs in this repo
 
-- `AZURE_SETUP.md` — Azure DevOps wiring
-- `SERIAL_EXECUTION_GUIDE.md` / `TRUE_SERIAL_EXECUTION.md` — serial vs parallel strategies
-- `TEST_EXECUTION_SUMMARY.md` — execution notes
+- `AZURE_SETUP.md` â€” Azure DevOps wiring
+- `SERIAL_EXECUTION_GUIDE.md` / `TRUE_SERIAL_EXECUTION.md` â€” serial vs parallel strategies
+- `TEST_EXECUTION_SUMMARY.md` â€” execution notes
 
 ## Author
 
-**Pushanshu Avinash Sharma** — QA Automation Architect / Lead SDET  
-[GitHub](https://github.com/Avinash258) · [LinkedIn](https://www.linkedin.com/in/p-avinash-sharma-8b0203b9/) · [Portfolio](https://avinash258.github.io/Protfolio/)
+**Avinash Sharma** â€” QA Automation Architect / Lead SDET  
+[GitHub](https://github.com/Avinash258) Â· [LinkedIn](https://www.linkedin.com/in/p-avinash-sharma-8b0203b9/) Â· [Portfolio](https://avinash258.github.io/Protfolio/)
